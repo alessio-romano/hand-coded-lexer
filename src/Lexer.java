@@ -1,19 +1,29 @@
-import java.io.EOFException;
-..
+import java.io.File;
+import java.util.HashMap;
+import java.util.Scanner;
 
 public class Lexer {
 
+    private static final boolean DEBUG = true;
+
+    private static final String RELOP = "RELOP";
+    private static final String ID = "ID";
+    private char[] buffer;
+    private int beginLexem;
     private File input;
-    private static .. stringTable;  // la struttura dati potrebbe essere una hash map
+    private static HashMap<String, Token> stringTable;  // la struttura dati potrebbe essere una hash map
     private int state;
-    ..
 
     public Lexer(){
         // la symbol table in questo caso la chiamiamo stringTable
-        stringTable = new  ..
+        stringTable = new HashMap<>();
         state = 0;
         stringTable.put("if", new Token("IF"));   // inserimento delle parole chiavi nella stringTable per evitare di scrivere un diagramma di transizione per ciascuna di esse (le parole chiavi verranno "catturate" dal diagramma di transizione e gestite e di conseguenza). IF poteva anche essere associato ad una costante numerica
-        ..
+        stringTable.put("then", new Token("THEN"));
+        stringTable.put("else", new Token("ELSE"));
+        stringTable.put("while", new Token("WHILE"));
+        stringTable.put("int", new Token("INT"));
+        stringTable.put("float", new Token("FLOAT"));
 
     }
 
@@ -21,93 +31,204 @@ public class Lexer {
 
         // prepara file input per lettura e controlla errori
 
+        input = new File(filePath);
+
+        return true;
     }
 
     public Token nextToken()throws Exception{
 
         //Ad ogni chiamata del lexer (nextToken())
         //si resettano tutte le variabili utilizzate
+        //Scanner sc = new Scanner(input).useDelimiter("\\s*"); // per eliminare gli spazi e far in modo di leggere carattere per carattere
+        Scanner sc = new Scanner(input);
+        String line = sc.nextLine();
+        buffer = new char[line.length()];
+        buffer = line.toCharArray();
+        int forward = beginLexem;
+
+        boolean endOfFile = (buffer[forward] == '\r' || buffer[forward+1] == '\n');
+
         state = 0;
         String lessema = ""; // il lessema riconosciuto
         char c;
-        ..
 
         while(true){
 
             // legge un carattere da input e lancia eccezione quando incontra EOF per restituire null
             //  per indicare che non ci sono pi token
 
-            c = ..
-            ..
+            c = buffer[forward];
+            forward++;
 
+            if(DEBUG) System.out.println("Carattere Letto: " +c);
 
-            //id
+            //RELOP
             switch(state){
+                case 0:
+                    if(c == '<'){
+                        state = 1;
+                    }
+                    else if(c == '=') {
+                        state = 5;
+                        forward++;
+                        beginLexem = forward;
+                        return new Token(RELOP, "EQ");
+                    } else if(c == '>') {state = 6;}
+                    else state = 9; //vado in un nuovo diagramma
+                    break; //end case 0
+                case 1:
+                    if(c == '=') {
+                        state = 2;
+                        beginLexem = forward;
+                        return new Token(RELOP, "LE");
+                    } else if(c == '>') {
+                        state = 3;
+                        beginLexem = forward;
+                        return new Token(RELOP, "NE");
+                    } else {
+                        state = 4;
+                        retrack(forward);
+                        return new Token(RELOP, "LT");
+                    } //end case 1
+                    //break;
+                case 6:
+                    if(c == '=') {
+                        state = 7;
+                        return new Token(RELOP, "GE");
+                    } else {
+                        state = 8;
+                        retrack(forward);
+                        return new Token(RELOP, "GT");
+                    }
+                    //break;//end case 6
+                //ID
                 case 9:
-                    if(Character.isLetter(c)){
+                    if(Character.isLetter(c)) {
                         state = 10;
                         lessema += c;
                         // Nel caso in cui il file  terminato ma ho letto qualcosa di valido
                         // devo lanciare il token (altrimenti perderei l'ultimo token, troncato per l'EOF)
-                        if( // controlla se  finito il file){
-                        return installID(lessema);
+                        if (endOfFile) {
+                            return installID(lessema);
+                        }
                     }
                     break;
-            }
-            state = 12;
-            break;
-
-            case 10:
-                if(Character.isLetterOrDigit(c)){
-                    lessemq += c;
-                    if(// controlla se  finito il file)
-                    return installID(lessema);
+                case 10:
+                    if(Character.isLetterOrDigit(c)){
+                        lessema += c;
+                        if(endOfFile)
+                            return installID(lessema);
+                        break;
+                    }else{
+                        state = 11;
+                        retrack(forward);
+                        return installID(lessema);
+                    }
+                    //unsigned numbers
+                case 12:
+                    if(Character.isDigit(c)) {
+                        state = 13;
+                        lessema += c;
+                        if (endOfFile) {
+                            return new Token("NUMBER", lessema);
+                        }
+                    }
                     break;
-                }else{
-                    state = 11;
-                    retrack();
-                    return installID(lessema);
-                }
-            default: break;
-        }//end switch
+                case 13:
+                    if(c == '.') {
+                        state = 14;
+                        lessema += c;
+                    } else if(!Character.isDigit(c)) {
+                        state = 20;
+                        retrack(forward);
+                    } else { //sto leggendo ancora un numero
+                        lessema += c;
+                        //lo stato è sempre 13 quindi non si modifica
+                    }
+                case 14:
+                    if(Character.isDigit(c)){
+                        state = 15;
+                        lessema += c;
+                    }
+                    break;
+                case 15:
+                    if(Character.isDigit(c)){
+                        lessema += c;
+                    } else if(c == 'E' || c == 'e') {
+                        state = 16;
+                        lessema += c;
+                    } else {
+                        state = 21;
+                        retrack(forward);
+                        return new Token("NUMBER", lessema);
+                    }
+                    break;
+                case 16:
+                    if(Character.isDigit(c)){
+                        state = 18;
+                        lessema += c;
+                        if(endOfFile){
+                            return new Token("NUMBER", lessema);
+                        }
+                    } else if(c == '+' || c == '-'){
+                        state = 17;
+                        lessema += c;
+                    }
+                    break;
+                case 17:
+                    if(Character.isDigit(c)) {
+                        state = 18;
+                        lessema += c;
+                        if (endOfFile) {
+                            return new Token("NUMBER", lessema);
+                        }
+                    }
+                    break;
+                case 18:
+                    if(!Character.isDigit(c)){
+                        state = 19;
+                        retrack(forward);
+                        return new Token("NUMBER", lessema);
+                    } else { //sto leggendo ancora un numero
+                        lessema += c;
+                    }
+                    break;
+                case 22:
+                    if(Character.isWhitespace(c)) {
+                        state = 23;
+                    }
+                    break;
+                case 23:
+                    if(!Character.isWhitespace(c)) {
+                        state = 24;
+                        retrack(forward);
+                    }
+                    break;
+                default: break;
+            } //end switch
+        }//end while
+    }//end method
 
-        //unsigned numbers
-        switch(state){
-            case 12:
-                if(Character.isDigit(c)){
-                    state = 13;
-                    lessema += c;
-                    if(// controlla se  finito il file){
-                    return new Token("NUMBER", lessema);
-                }
-                break;
-        }
-        state = 22;
-        break;
 
-        case 13:
-				..
-    }
-}//end while
-	}//end method
-
-
-private Token installID(String lessema){
+    private Token installID(String lessema){
         Token token;
 
         //utilizzo come chiave della hashmap il lessema
-        if(stringTable.containsKey(lessema))
-        return symbolTable.get(lessema);
-        else{
-        token =  new Token("ID", lessema);
-        stringTable.put(lessema, token);
-        return token;
+        if(stringTable.containsKey(lessema)) {
+            return stringTable.get(lessema);
+        } else {
+            token =  new Token("ID", lessema);
+            stringTable.put(lessema, token);
+            return token;
         }
-        }
+    }
 
 
-private void retrack(){
+    private void retrack(int newBegin){
         // fa il retract nel file di un carattere
-        }
+        beginLexem = newBegin;
+    }
 
-        }
+}// end class
+

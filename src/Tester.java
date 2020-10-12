@@ -2,8 +2,8 @@ public class Tester {
 
     public static void main(String[] args) {
 
-        LexicalAnalyzer lexicalAnalyzer = new LexicalAnalyzer();
-        String filePath = "file_input.txt";
+        Lexer lexicalAnalyzer = new Lexer();
+        String filePath = args[0];
 
         if (lexicalAnalyzer.initialize(filePath)) {
 
@@ -21,3 +21,4 @@ public class Tester {
     }
 
 }
+
