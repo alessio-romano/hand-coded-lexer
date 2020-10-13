@@ -42,6 +42,13 @@ public class Lexer {
         buffer = line.toCharArray();
         int forward = beginLexem;
 
+        if(DEBUG){
+            System.out.println("Linea: " + line);
+            System.out.println("Dim. linea: " + line.length());
+            System.out.println("Dim. buffer: " + buffer.length);
+            System.out.println("Valore forward: " + forward);
+        }
+
         boolean endOfFile = (buffer[forward] == '\r' && buffer[forward+1] == '\n');
 
         state = 0;
@@ -56,7 +63,13 @@ public class Lexer {
             c = buffer[forward];
             forward++;
 
-            if(DEBUG) System.out.println("Carattere Letto: " +c);
+            if(DEBUG){
+                System.out.println("-----------------------");
+                System.out.println("Carattere Letto: " +c);
+                System.out.println("State: " + state);
+                System.out.println("Forward: " + forward);
+                System.out.println("-----------------------");
+            }
 
             switch(state) {
                 case 0:
@@ -112,7 +125,7 @@ public class Lexer {
                         beginLexem = forward;
                         return new Token("RBRAC");
                     }
-                        break; //end case 0
+                    break; //end case 0
                 case 1:
                     if(c == '=') {
                         state = 2;
@@ -172,10 +185,13 @@ public class Lexer {
                         lessema += c;
                     } else if(!Character.isDigit(c)) {
                         state = 20;
+                        //retrack(forward);
+                        //return new Token("NUMBER", lessema);
                     } else { //sto leggendo ancora un numero
                         lessema += c;
                         //lo stato è sempre 13 quindi non si modifica
                     }
+                    break;
                 case 14:
                     if(Character.isDigit(c)){
                         state = 15;
@@ -218,6 +234,7 @@ public class Lexer {
                 case 18:
                     if(!Character.isDigit(c)){
                         state = 19;
+
                     } else { //sto leggendo ancora un numero
                         lessema += c;
                     }
