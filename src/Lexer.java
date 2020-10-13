@@ -30,7 +30,6 @@ public class Lexer {
     public Boolean initialize(String filePath){
 
         // prepara file input per lettura e controlla errori
-
         input = new File(filePath);
 
         return true;
@@ -40,23 +39,22 @@ public class Lexer {
 
         //Ad ogni chiamata del lexer (nextToken())
         //si resettano tutte le variabili utilizzate
-        //Scanner sc = new Scanner(input).useDelimiter("\\s*"); // per eliminare gli spazi e far in modo di leggere carattere per carattere
         Scanner sc = new Scanner(input);
-        String line = sc.nextLine();
+        String line = sc.nextLine(); //cambia
         buffer = new char[line.length()];
         buffer = line.toCharArray();
         int forward = beginLexem;
 
-        boolean endOfFile = (buffer[forward] == '\r' || buffer[forward+1] == '\n');
+        boolean endOfFile = (buffer[forward] == '\r' && buffer[forward+1] == '\n');
 
         state = 0;
-        String lessema = ""; // il lessema riconosciuto
+        String lessema = ""; //è il lessema riconosciuto
         char c;
 
         while(true){
 
             // legge un carattere da input e lancia eccezione quando incontra EOF per restituire null
-            //  per indicare che non ci sono pi token
+            //  per indicare che non ci sono più token
 
             c = buffer[forward];
             forward++;
@@ -71,7 +69,6 @@ public class Lexer {
                     }
                     else if(c == '=') {
                         state = 5;
-                        forward++;
                         beginLexem = forward;
                         return new Token(RELOP, "EQ");
                     } else if(c == '>') {state = 6;}
@@ -86,22 +83,35 @@ public class Lexer {
                         state = 3;
                         beginLexem = forward;
                         return new Token(RELOP, "NE");
-                    } else {
+                    }
+                    else if(c == '-'){
+                        state = 25;
+                        }
+                    else {
                         state = 4;
-                        retrack(forward);
-                        return new Token(RELOP, "LT");
                     } //end case 1
-                    //break;
+                    break;
+                case 4:
+                    retrack(forward);
+                    return new Token(RELOP, "LT");
+                case 25:
+                    if(c == '-'){
+                        state = 26;
+                        beginLexem = forward;
+                        return new Token("ASSIGN");
+                    }
                 case 6:
                     if(c == '=') {
                         state = 7;
+                        beginLexem = forward;
                         return new Token(RELOP, "GE");
                     } else {
                         state = 8;
-                        retrack(forward);
-                        return new Token(RELOP, "GT");
                     }
-                    //break;//end case 6
+                    break;//end case 6
+                case 8:
+                    retrack(forward);
+                    return new Token(RELOP, "GT");
                 //ID
                 case 9:
                     if(Character.isLetter(c)) {
@@ -122,10 +132,12 @@ public class Lexer {
                         break;
                     }else{
                         state = 11;
-                        retrack(forward);
-                        return installID(lessema);
                     }
-                    //unsigned numbers
+                    break;
+                case 11:
+                    retrack(forward);
+                    return installID(lessema);
+                //unsigned numbers
                 case 12:
                     if(Character.isDigit(c)) {
                         state = 13;
@@ -141,7 +153,6 @@ public class Lexer {
                         lessema += c;
                     } else if(!Character.isDigit(c)) {
                         state = 20;
-                        retrack(forward);
                     } else { //sto leggendo ancora un numero
                         lessema += c;
                         //lo stato è sempre 13 quindi non si modifica
@@ -188,12 +199,15 @@ public class Lexer {
                 case 18:
                     if(!Character.isDigit(c)){
                         state = 19;
-                        retrack(forward);
-                        return new Token("NUMBER", lessema);
                     } else { //sto leggendo ancora un numero
                         lessema += c;
                     }
                     break;
+                case 19:
+                case 20:
+                case 21:
+                    retrack(forward);
+                    return new Token("NUMBER", lessema);
                 case 22:
                     if(Character.isWhitespace(c)) {
                         state = 23;
@@ -202,10 +216,12 @@ public class Lexer {
                 case 23:
                     if(!Character.isWhitespace(c)) {
                         state = 24;
-                        retrack(forward);
                     }
                     break;
-                default: break;
+                case 24:
+                    state = 0;
+                    retrack(forward);
+                default: break; //eventualmente anche errore qui
             } //end switch
         }//end while
     }//end method
@@ -213,7 +229,6 @@ public class Lexer {
 
     private Token installID(String lessema){
         Token token;
-
         //utilizzo come chiave della hashmap il lessema
         if(stringTable.containsKey(lessema)) {
             return stringTable.get(lessema);
@@ -225,10 +240,10 @@ public class Lexer {
     }
 
 
-    private void retrack(int newBegin){
+    private void retrack(int forward){
         // fa il retract nel file di un carattere
-        beginLexem = newBegin;
+        forward--;
+        beginLexem = forward;
     }
 
 }// end class
-
