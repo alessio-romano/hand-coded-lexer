@@ -7,7 +7,6 @@ public class Lexer {
     private static final boolean DEBUG = true;
 
     private static final String RELOP = "RELOP";
-    private static final String ID = "ID";
     private char[] buffer;
     private int beginLexem;
     private File input;
@@ -28,10 +27,8 @@ public class Lexer {
     }
 
     public Boolean initialize(String filePath){
-
         // prepara file input per lettura e controlla errori
         input = new File(filePath);
-
         return true;
     }
 
@@ -61,19 +58,61 @@ public class Lexer {
 
             if(DEBUG) System.out.println("Carattere Letto: " +c);
 
-            //RELOP
-            switch(state){
+            switch(state) {
                 case 0:
-                    if(c == '<'){
+                    //RELOP
+                    if (c == '<') {
                         state = 1;
-                    }
-                    else if(c == '=') {
+                    } else if (c == '=') {
                         state = 5;
                         beginLexem = forward;
                         return new Token(RELOP, "EQ");
-                    } else if(c == '>') {state = 6;}
-                    else state = 9; //vado in un nuovo diagramma
-                    break; //end case 0
+                    } else if (c == '>') {
+                        state = 6;
+                    //ID
+                    } else if (Character.isLetter(c)) { //ex stato 9
+                        lessema += c;
+                        state = 10;
+                        if (endOfFile) {
+                            return installID(lessema);
+                        }
+                    //WHITESPACE
+                    } else if (Character.isWhitespace(c)) { //ex stato 22
+                        state = 23;
+                    //NUMBERS
+                    } else if (Character.isDigit(c)) { //ex stato 12
+                        state = 13;
+                        lessema += c;
+                        if (endOfFile) {
+                            return new Token("NUMBER", lessema);
+                        }
+                    }
+                    //SEPARATORS
+                    else if(c == ';'){
+                        beginLexem = forward;
+                        return new Token("SEMICOLON");
+                    }
+                    else if(c == ','){
+                        beginLexem = forward;
+                        return new Token("COMMA");
+                    }
+                    else if(c == '('){
+                        beginLexem = forward;
+                        return new Token("LPAR");
+                    }
+                    else if(c == ')'){
+                        beginLexem = forward;
+                        return new Token("RPAR");
+                    }
+                    else if(c == '{'){
+                        beginLexem = forward;
+                        return new Token("LBRAC");
+                    }
+                    else if(c == '}'){
+                        beginLexem = forward;
+                        return new Token("RBRAC");
+                    }
+                        break; //end case 0
                 case 1:
                     if(c == '=') {
                         state = 2;
@@ -113,17 +152,6 @@ public class Lexer {
                     retrack(forward);
                     return new Token(RELOP, "GT");
                 //ID
-                case 9:
-                    if(Character.isLetter(c)) {
-                        state = 10;
-                        lessema += c;
-                        // Nel caso in cui il file  terminato ma ho letto qualcosa di valido
-                        // devo lanciare il token (altrimenti perderei l'ultimo token, troncato per l'EOF)
-                        if (endOfFile) {
-                            return installID(lessema);
-                        }
-                    }
-                    break;
                 case 10:
                     if(Character.isLetterOrDigit(c)){
                         lessema += c;
@@ -138,15 +166,6 @@ public class Lexer {
                     retrack(forward);
                     return installID(lessema);
                 //unsigned numbers
-                case 12:
-                    if(Character.isDigit(c)) {
-                        state = 13;
-                        lessema += c;
-                        if (endOfFile) {
-                            return new Token("NUMBER", lessema);
-                        }
-                    }
-                    break;
                 case 13:
                     if(c == '.') {
                         state = 14;
