@@ -1,6 +1,8 @@
+import java.io.FileNotFoundException;
+
 public class Tester {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException {
 
         Lexer lexicalAnalyzer = new Lexer();
         String filePath = args[0];
