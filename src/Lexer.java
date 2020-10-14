@@ -1,6 +1,8 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Scanner;
 import java.io.FileReader;
@@ -44,7 +46,7 @@ public class Lexer {
             buffer += (char) i;
         }
         buffer += "\0";
-        System.out.println(buffer);
+        if(DEBUG) System.out.println(buffer);
         return true;
     }
 
@@ -59,8 +61,6 @@ public class Lexer {
             System.out.println("Dim. buffer: " + buffer.length());
             System.out.println("Valore forward: " + forward);
         }
-
-        //boolean endOfFile = (buffer[forward] == '\r' && buffer[forward+1] == '\n');
 
         state = 0;
         String lessema = ""; //è il lessema riconosciuto
@@ -100,19 +100,18 @@ public class Lexer {
                     } else if (Character.isLetter(c)) { //ex stato 9
                         lessema += c;
                         state = 10;
-                        /*if (endOfFile) {
-                            return installID(lessema);
-                        }*/
                         //WHITESPACE
                     } else if (Character.isWhitespace(c)) { //ex stato 22
                         state = 23;
                         //NUMBERS
                     } else if (Character.isDigit(c)) { //ex stato 12
-                        state = 13;
-                        lessema += c;
-                        /*if (endOfFile) {
-                            return new Token("NUMBER", lessema);
-                        }*/
+                        if(c == '0'){
+                            state = 12;
+                            lessema += c;
+                        } else {
+                            state = 13;
+                            lessema += c;
+                        }
                     }
                     //SEPARATORS
                     else if (c == ';') {
@@ -187,6 +186,15 @@ public class Lexer {
                     }
                     break;
                     //unsigned numbers
+                case 12:
+                    if(c == '.'){
+                        state = 14;
+                        lessema += c;
+                    } else {
+                        state = 20;
+                        retrack();
+                        return new Token("NUMBER", lessema);
+                    }
                 case 13:
                     if (c == '.') {
                         state = 14;
@@ -265,11 +273,9 @@ public class Lexer {
                 default:
                     break; //eventualmente anche errore qui
             } //end switch
-          /*  if(forward >= buffer.length){
-                riempiBuffer();
-            }*/
         }//end while
-    return null;}//end method
+        return null;
+    }//end method
 
 
     private Token installID(String lessema){
@@ -288,6 +294,16 @@ public class Lexer {
         // fa il retract nel file di un carattere
         forward--;
         beginLexem = forward;
+    }
+
+    public void printStringTable(){
+        int i = 0;
+        Token tokens[] = stringTable.values().toArray(new Token[0]);
+        System.out.println("STRING TABLE");
+        System.out.println("------------");
+        stringTable.entrySet().forEach(stringTokenEntry -> {
+            System.out.println(stringTokenEntry.getKey() + "\t | " + stringTokenEntry.getValue());
+        });
     }
 
 }// end class

@@ -15,6 +15,7 @@ public class Tester {
                 while ((token = lexicalAnalyzer.nextToken()) != null) {
                     System.out.println(token);
                 }
+                lexicalAnalyzer.printStringTable();
             } catch (Exception e) {
                 e.printStackTrace();
             }
