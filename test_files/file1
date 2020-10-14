@@ -10,7 +10,7 @@ while
 int
 float
 657890
-if a then b <-- 6;
-int c;
+if a then { b <-- (6+7) };
+int c, d;
 n234;
 345.57e+10

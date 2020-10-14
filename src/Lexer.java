@@ -1,7 +1,9 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.io.FileReader;
 import java.util.regex.Pattern;
 
 public class Lexer {
@@ -10,16 +12,19 @@ public class Lexer {
 
     private static final String RELOP = "RELOP";
     private Scanner sc;
-    private char[] buffer;
+    //private char[] buffer;
+    String buffer="";
     private int beginLexem;
     private int forward;
     private File input;
     private static HashMap<String, Token> stringTable;  // la struttura dati potrebbe essere una hash map
     private int state;
+    FileReader fileReader;
 
     public Lexer(){
         // la symbol table in questo caso la chiamiamo stringTable
         stringTable = new HashMap<>();
+        beginLexem = 0;
         state = 0;
         stringTable.put("if", new Token("IF"));   // inserimento delle parole chiavi nella stringTable per evitare di scrivere un diagramma di transizione per ciascuna di esse (le parole chiavi verranno "catturate" dal diagramma di transizione e gestite e di conseguenza). IF poteva anche essere associato ad una costante numerica
         stringTable.put("then", new Token("THEN"));
@@ -30,15 +35,20 @@ public class Lexer {
 
     }
 
-    public Boolean initialize(String filePath) throws FileNotFoundException {
+    public Boolean initialize(String filePath) throws FileNotFoundException, IOException {
         // prepara file input per lettura e controlla errori
         input = new File(filePath);
-        sc = new Scanner(input);
-        riempiBuffer();
+        fileReader = new FileReader(input);
+        int i;
+        while((i = fileReader.read()) != -1){
+            buffer += (char) i;
+        }
+        buffer += "\0";
+        System.out.println(buffer);
         return true;
     }
 
-    public Token nextToken()throws Exception{
+    public Token nextToken() throws Exception{
 
         //Ad ogni chiamata del lexer (nextToken())
         //si resettano tutte le variabili utilizzate
@@ -46,7 +56,7 @@ public class Lexer {
        forward = beginLexem;
 
         if(DEBUG){
-            System.out.println("Dim. buffer: " + buffer.length);
+            System.out.println("Dim. buffer: " + buffer.length());
             System.out.println("Valore forward: " + forward);
         }
 
@@ -55,17 +65,16 @@ public class Lexer {
         state = 0;
         String lessema = ""; //è il lessema riconosciuto
         char c;
+        int i;
+        boolean flag = true;
 
-        while(true){
+        while(flag){
 
             // legge un carattere da input e lancia eccezione quando incontra EOF per restituire null
             //  per indicare che non ci sono più token
-            if(forward >= buffer.length){ //significa che la linea è terminata
-                riempiBuffer();
-            } /*else {
-                return null;
-            }*/
-            c = buffer[forward];
+
+            c = buffer.charAt(forward);
+            if(c == '\0') flag = false;
             forward++;
 
             if (DEBUG) {
@@ -124,6 +133,11 @@ public class Lexer {
                     } else if (c == '}') {
                         beginLexem = forward;
                         return new Token("RBRAC");
+                    }
+                    else if(c != '\0'){
+                        beginLexem = forward;
+                        lessema+=c;
+                        return new Token("ERROR",lessema);
                     }
                     break; //end case 0
                 case 1:
@@ -192,7 +206,11 @@ public class Lexer {
                         lessema += c;
                     } else {
                         //da gestire in maniera diversa in modo da non eliminare tutto ciò letto finora
-                        return new Token("ERROR", lessema);
+                        retrack();
+                        retrack();
+                        //token errato -> restituiamo il primo token corretto più lungo possibile
+                        String x = lessema.substring(0,lessema.length()-1);
+                        return new Token("NUMBER", x);
                     }
                     break;
                 case 15:
@@ -239,13 +257,11 @@ public class Lexer {
                     break;
                 case 23:
                     if (!Character.isWhitespace(c)) {
-                        state = 24;
+                        state = 0;
+                        retrack();
                     }
                     //else {sto leggendo ancora un ws e quindi resto nello stato 23}
                     break;
-                case 24:
-                    state = 0;
-                    retrack();
                 default:
                     break; //eventualmente anche errore qui
             } //end switch
@@ -253,7 +269,7 @@ public class Lexer {
                 riempiBuffer();
             }*/
         }//end while
-    }//end method
+    return null;}//end method
 
 
     private Token installID(String lessema){
@@ -274,20 +290,4 @@ public class Lexer {
         beginLexem = forward;
     }
 
-    private void riempiBuffer(){
-
-        String line;
-        if(sc.hasNext("(.|[[:cntrl:]])*")){
-            line = sc.next("(.|[[:cntrl:]])*"); //cambia
-
-            buffer = new char[line.length()];
-            buffer = line.toCharArray();
-            forward = 0;
-            beginLexem = forward;
-            if(DEBUG) {
-                System.out.println("Linea: " + line);
-                System.out.println("Dim. linea: " + line.length());
-            }
-        }
-    }
 }// end class
