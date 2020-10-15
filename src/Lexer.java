@@ -5,9 +5,10 @@ import java.io.FileReader;
 
 public class Lexer {
 
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
 
     private static final String RELOP = "RELOP";
+    private static final String NUMBER = "NUMBER";
     String buffer="";
     private int beginLexem;
     private int forward;
@@ -32,42 +33,49 @@ public class Lexer {
         stringTable.put("float", new Token("FLOAT"));
     }
 
-    public Boolean initialize(String filePath) throws IOException {
-        //Prepara file input per lettura e controlla errori
-        input = new File(filePath);
-        fileReader = new FileReader(input);
-        int i;
-        while((i = fileReader.read()) != -1){
-            buffer += (char) i;
+    public Boolean initialize(String filePath) {
+        //Verifica se il file di input esiste
+        //In caso positivo, inizializza e riempie il buffer a partire dal file di input
+        try {
+            input = new File(filePath);
+            fileReader = new FileReader(input);
+            int i;
+            while ((i = fileReader.read()) != -1) {
+                buffer += (char) i;
+            }
+            buffer += "\0";
+            if (DEBUG) System.out.println(buffer);
+            return true;
         }
-        buffer += "\0";
-        if(DEBUG) System.out.println(buffer);
-        return true;
+        catch(IOException e){
+            return false;
+        }
     }
 
     public Token nextToken(){
         //Ad ogni chiamata del lexer (nextToken()) si resettano tutte le variabili utilizzate
-        int zeroCounter = 0;
+        int zeroCounter = 0; //E' utilizzato per contare gli zeri consecutivi dopo la virgola in modo
+                             //da assicurarsi che i numeri decimali non terminino con più zeri
         forward = beginLexem;
 
-        if(DEBUG){
+        if(DEBUG){//Stampe di controllo
             System.out.println("Dim. buffer: " + buffer.length());
             System.out.println("Valore forward: " + forward);
         }
 
         state = 0;
         String lessema = ""; //Corrisponde al lessema riconosciuto
-        char c;
+        char c; //Carattere letto ad ogni iterazione
         boolean flag = true;
 
         //Utilizziamo una flag il cui scopo è quello di indicare l'eventuale raggiungimento
         //della fine del file, corrispondente al carattere '\0' all'interno della stringa
         while(flag){
             c = buffer.charAt(forward);
-            if(c == '\0') flag = false;
+            if(c == '\0') flag = false; //flag = false indica la fine del file
             forward++;
 
-            if (DEBUG) {
+            if (DEBUG) { //stampe di controllo
                 System.out.println("-----------------------");
                 System.out.println("Carattere Letto: " + c);
                 System.out.println("State: " + state);
@@ -87,14 +95,14 @@ public class Lexer {
                         return new Token(RELOP, "EQ");
                     } else if (c == '>') {
                         state = 6;
-                        //ID
+                    //ID
                     } else if (Character.isLetter(c)) { //ex stato 9
                         lessema += c;
                         state = 10;
-                        //WHITESPACE
+                    //WHITESPACE
                     } else if (Character.isWhitespace(c)) { //ex stato 22
                         state = 23;
-                        //NUMBERS
+                    //NUMBERS
                     } else if (Character.isDigit(c)) { //ex stato 12
                         if(c == '0'){
                             state = 12;
@@ -162,7 +170,7 @@ public class Lexer {
                         retrack();
                         return new Token(RELOP, "GT");
                     }
-                    //ID
+                //ID
                 case 10:
                     if (Character.isLetterOrDigit(c)) {
                         lessema += c;
@@ -172,7 +180,7 @@ public class Lexer {
                         return installID(lessema);
                     }
                     break;
-                    //UNSIGNED NUMBERS
+                //UNSIGNED NUMBERS
                 case 12:
                     if(c == '.'){
                         state = 14;
@@ -180,7 +188,7 @@ public class Lexer {
                     } else {
                         state = 20;
                         retrack();
-                        return new Token("NUMBER", lessema);
+                        return new Token(NUMBER, lessema);
                     }
                     break;
                 case 13:
@@ -190,7 +198,7 @@ public class Lexer {
                     } else if (!Character.isDigit(c)) {
                         state = 20;
                         retrack();
-                        return new Token("NUMBER", lessema);
+                        return new Token(NUMBER, lessema);
                     } else { //stiamo ancora leggendo un numero
                         lessema += c;
                         //lo stato è sempre 13 quindi non va modificato
@@ -207,18 +215,20 @@ public class Lexer {
                         }
                         lessema += c;
                     } else {
-                        retrack();
-                        retrack();
-                        //Avendo trovato un token errato restituiamo il primo token corretto
-                        //più lungo possibile
+                        retrack(); //Viene utilizzato due volte il metodo retrack perché dopo il punto
+                        retrack(); //ci sono zeri successivi seguiti da un carattere diverso da un digit
+                                   //ad esempio "50.00 "
+
+                        //Avendo letto un carattere che non rispetta il pattern di alcun token,
+                        //restituiamo l'ultimo token corretto prima del carattere "."
                         String x = lessema.substring(0,lessema.length()-1);
-                        return new Token("NUMBER", x);
+                        return new Token(NUMBER, x);
                     }
                     break;
                 case 15:
                     if (Character.isDigit(c)) {
                         if(c == '0') {
-                            state = 30;
+                            state = 31;
                             zeroCounter++;
                         }
                         lessema += c;
@@ -228,7 +238,7 @@ public class Lexer {
                     } else {
                         state = 21;
                         retrack();
-                        return new Token("NUMBER", lessema);
+                        return new Token(NUMBER, lessema);
                     }
                     break;
                 case 16:
@@ -250,7 +260,7 @@ public class Lexer {
                     if (!Character.isDigit(c)) {
                         state = 19;
                         retrack();
-                        return new Token("NUMBER", lessema);
+                        return new Token(NUMBER, lessema);
                     } else { //sto leggendo ancora un numero
                         lessema += c;
                     }
@@ -268,9 +278,28 @@ public class Lexer {
                     }
                     else{
                         forward -= zeroCounter;
+                        retrack(); //Viene utilizzato due volte il metodo retrack perché dopo il punto
+                        retrack(); //viene letto un carattere diverso da un digit
+                        String x = lessema.substring(0,lessema.length()-zeroCounter-1);
+                        return new Token(NUMBER, x);
+                    }
+                    break;
+                case 31:
+                    if(Character.isDigit(c)){
+                        if(c != '0') {
+                            state = 15;
+                            zeroCounter = 0; //azzero perchè altrimenti considero anche zeri precedenti
+                        }
+                        else{
+                            zeroCounter++;
+                        }
+                        lessema+=c;
+                    }
+                    else{
+                        forward -= zeroCounter;
                         retrack();
                         String x = lessema.substring(0,lessema.length()-zeroCounter);
-                        return new Token("NUMBER", x);
+                        return new Token(NUMBER, x);
                     }
                     break;
                 case 23:
