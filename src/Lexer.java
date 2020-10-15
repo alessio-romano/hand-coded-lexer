@@ -5,7 +5,7 @@ import java.io.FileReader;
 
 public class Lexer {
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private static final String RELOP = "RELOP";
     String buffer="";
@@ -308,9 +308,9 @@ public class Lexer {
     public void printStringTable(){
         Token tokens[] = stringTable.values().toArray(new Token[0]);
         System.out.println("STRING TABLE");
-        System.out.println("------------");
+        System.out.println("--------------------------------------------");
         stringTable.entrySet().forEach(stringTokenEntry -> {
-            System.out.println(stringTokenEntry.getKey() + "\t | " + stringTokenEntry.getValue());
+            System.out.printf("|%20s | %-25s |\n", stringTokenEntry.getKey(), stringTokenEntry.getValue());
         });
     }
 }// end class
