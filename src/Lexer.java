@@ -5,7 +5,7 @@ import java.io.FileReader;
 
 public class Lexer {
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private static final String RELOP = "RELOP";
     private static final String NUMBER = "NUMBER";

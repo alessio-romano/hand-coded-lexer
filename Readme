@@ -1,0 +1,25 @@
+README
+------
+1. Si è deciso di caricare l'intero file di input in un buffer (come buffer è stata usata una stringa
+   in quanto in Java è possibile avere elementi della classe java.lang.String con dimensione massima
+   di ((2^31) - 1)).
+   Per gestire la fine del file si è aggiunto il carattere speciale '\0' alla fine dell'input
+   e si è usato un flag booleano (denominato "flag") per poter uscire dal ciclo while quando non ci sono ulteriori
+   caratteri da leggere.
+   Si parte ponendo il flag a true e si pone a false quando il carattere letto è uguale a '\0'.
+
+2. I whitespace all'interno del file vengono consumati e di conseguenza ignorati. Per whitespace si intendono
+   tutti quei caratteri non considerati esplicitamente. Esempi sono: \n \r \t ecc.
+
+3. Per la tabella delle stringhe si è usata una HashMap<K,V> dove K è il lessema letto e V è il token associato.
+
+GESTIONE ERRORI
+----------------
+1. Gli 0 (zero) davanti ad un numero intero (es. 0052) o dopo la virgola (1.25000) sono stati gestiti
+   in modo che l'analizzatore lessicale restituisca i seguenti token:
+   <NUMBER, "0"><NUMBER, "0"><NUMBER, "52"> e <NUMBER, "1.25"><NUMBER, "0"><NUMBER, "0"><NUMBER, "0">
+   Per evitare un numero decimale errato (es. 50.00), abbiamo progettato l'analizzatore lessicale
+   in modo che restituisca i seguenti token: <NUMBER, "50"><ERROR, "."><NUMBER, "0"><NUMBER, "0">
+
+2. Si è deciso di restituire un token <ERROR, "lex"> dove lex è un lessema che non rispetta nessun pattern
+   dei token validi.
