@@ -1,6 +1,5 @@
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.io.FileReader;
 
 public class Lexer {
@@ -9,28 +8,19 @@ public class Lexer {
 
     private static final String RELOP = "RELOP";
     private static final String NUMBER = "NUMBER";
-    String buffer="";
+    private int idSymTab;
+    private SymbolTable symbolTable;
+    private String buffer = "";
     private int beginLexem;
     private int forward;
     private File input;
-    private static HashMap<String, Token> stringTable;
     private int state;
-    FileReader fileReader;
+    private FileReader fileReader;
 
     public Lexer(){
-        stringTable = new HashMap<>();//La symbol table in questo caso equivale alla stringTable
         beginLexem = 0;
         state = 0;
-        // Inserimento delle parole chiave nella stringTable. Questa scelta è stata fatta
-        // al fine di non costruire un diagramma di transizione per ogni parola chiave.
-        // Le parole chiave verranno "catturate" dal diagramma di transizione e gestite e di conseguenza.
-        // IF poteva anche essere associato ad una costante numerica
-        stringTable.put("if", new Token("IF"));
-        stringTable.put("then", new Token("THEN"));
-        stringTable.put("else", new Token("ELSE"));
-        stringTable.put("while", new Token("WHILE"));
-        stringTable.put("int", new Token("INT"));
-        stringTable.put("float", new Token("FLOAT"));
+        idSymTab = 0;
     }
 
     public Boolean initialize(String filePath) {
@@ -45,9 +35,22 @@ public class Lexer {
             }
             buffer += "\0";
             if (DEBUG) System.out.println(buffer);
+
+            //creo la Symbol Table
+            symbolTable = new SymbolTable();
+
+            // Inserimento delle parole chiave nella stringTable. Questa scelta è stata fatta
+            // al fine di non costruire un diagramma di transizione per ogni parola chiave.
+            // Le parole chiave verranno "catturate" dal diagramma di transizione e gestite e di conseguenza.
+            String keywords[] = {"if", "then", "else", "while", "int", "float"};
+
+            for(String x: keywords) {
+                symbolTable.add(idSymTab++, x, new Token(x.toUpperCase()));
+            }
             return true;
         }
         catch(IOException e){
+            //il file non esiste
             return false;
         }
     }
@@ -318,12 +321,14 @@ public class Lexer {
 
     private Token installID(String lessema){
         Token token;
-        //utilizzo come chiave della hashmap il lessema
-        if(stringTable.containsKey(lessema)) {
-            return stringTable.get(lessema);
-        } else {
-            token =  new Token("ID", lessema);
-            stringTable.put(lessema, token);
+        //Verifico se il lessema riconosciuto è una parola chiave
+        token = symbolTable.contain(lessema);
+        if(token != null){
+            return token;
+        } else { //se non lo è, allora è un ID
+            token =  new Token("ID", String.valueOf(idSymTab));
+            symbolTable.add(idSymTab, lessema, token);
+            idSymTab++;
             return token;
         }
     }
@@ -335,11 +340,9 @@ public class Lexer {
     }
 
     public void printStringTable(){
-        Token tokens[] = stringTable.values().toArray(new Token[0]);
-        System.out.println("STRING TABLE");
-        System.out.println("--------------------------------------------");
-        stringTable.entrySet().forEach(stringTokenEntry -> {
-            System.out.printf("|%20s | %-25s |\n", stringTokenEntry.getKey(), stringTokenEntry.getValue());
-        });
+        System.out.println("\nSTRING TABLE");
+        System.out.println("-----------------------------------------------");
+        System.out.println(symbolTable);
+
     }
 }// end class

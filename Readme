@@ -11,7 +11,10 @@ README
 2. I whitespace all'interno del file vengono consumati e di conseguenza ignorati. Per whitespace si intendono
    tutti quei caratteri non considerati esplicitamente. Esempi sono: \n \r \t ecc.
 
-3. Per la tabella delle stringhe si è usata una HashMap<K,V> dove K è il lessema letto e V è il token associato.
+3. Per la tabella delle stringhe si è usata una classe SymbolTable in cui è presente una collezione
+   (un ArrayList) di SymbolTableRow che rappresenta una riga della Tabella.
+   Per ogni riga è specificato un ID numerico, il Lessema associato a quell'ID e il Token associato
+   al lessema (per la sola comodità di gestire le keywords).
 
 GESTIONE ERRORI
 ----------------
