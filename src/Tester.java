@@ -1,8 +1,13 @@
 public class Tester {
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws Exception{
 
         Lexer lexicalAnalyzer = new Lexer();
+
+        if(args.length == 0){
+            throw new Exception("Path del file non presente come argomento");
+        }
+
         String filePath = args[0];
 
         if (lexicalAnalyzer.initialize(filePath)) {
