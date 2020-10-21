@@ -198,6 +198,9 @@ public class Lexer {
                     if (c == '.') {
                         state = 14;
                         lessema += c;
+                    } else if(c == 'E' || c == 'e'){
+                         state = 16;
+                         lessema += c;
                     } else if (!Character.isDigit(c)) {
                         state = 20;
                         retrack();
