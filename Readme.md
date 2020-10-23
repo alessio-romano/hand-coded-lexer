@@ -26,3 +26,12 @@ GESTIONE ERRORI
 
 2. Si è deciso di restituire un token <code><ERROR, "lex"</code>> dove <code>lex</code> è un lessema che non rispetta nessun pattern
    dei token validi.
+
+**Nota:** Per un'errata configurazione di <code>git</code>, le credenziali degli autori non risultano essere quelle 
+di GitLab e quindi risultano degli username diversi rispetto a quelli comunicati.
+Per evitare di avere conflitti nei vari commit abbiamo deciso di non modificarli. <br/>
+
+| Username Errato     | Username Corretto | Studente |
+| -----------: | :----------- | :----- |
+| gnoanto94      | gnoanto       | Antonucci G. |
+| Sfoffo   | alessioromanogitlab | Romano A.|
